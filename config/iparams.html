@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="https://static.freshdev.io/fdk/2.0/assets/freshdesk.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://static.freshdev.io/fdk/2.0/assets/fresh_client.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/@freshworks/crayons@next/dist/crayons/crayons.esm.js">
+    </script>
+    <script nomodule src="https://unpkg.com/@freshworks/crayons@next/dist/crayons/crayons.js">
+    </script>
+    <style>
+        body {
+            margin: 20px;
+        }
+        #auth-page,
+        #selection-page {
+            margin: 20px;
+        }
+
+        #selection-page {
+            display: none;
+        }
+
+        .form-control {
+            border-width: 2px;
+        }
+
+        .btn-primary {
+            margin-top: 10px;
+        }
+
+        #loader {
+            margin-right: 7px;
+        }
+
+        #loader::shadow svg {
+            margin-bottom: -2px;
+        }
+
+        .form-control {
+            border-width: 2px;
+            background-color: #f3f3f3;
+            border-color: #f3f3f3 !important;
+            resize: none;
+        }
+
+        .form-control:hover {
+            background-color: #e2e2e2;
+            border-color: #e2e2e2 !important;
+            transition: 0.2s all ease-in;
+        }
+
+        .form-control:active,
+        .form-control:focus {
+            background-color: transparent;
+            border-color: #0053bf !important;
+            transition: all 0.2s ease-in;
+        }
+
+        .info-panel {
+            margin: 10px 0px;
+        }
+
+        .info-line:before {
+            content: "*";
+            margin-right: 2px;
+        }
+
+        #alert-panel-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        #alert-panel-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert-box {
+            display: none;
+            padding: 10px 20px;
+            margin: 0px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="alert-box" id="alert-panel-success"></div>
+    <div class="alert-box" id="alert-panel-error"></div>
+    <div id="auth-page">
+        <div class="form-group">
+            <label>Freshchat API Token</label>
+            <input type="text" class="form-control" id="freshchat_api_token" placeholder="Enter Freshchat API Token">
+        </div>
+        <div class="form-group">
+            <label>Zendesk Sell Access Token</label>
+            <input type="text" class="form-control" id="zendesk_access_token"
+                placeholder="Enter Zendesk Sell Access Token">
+        </div>
+        <div class="confirm-panel">
+            <button class="btn btn-primary" onclick="ValidateCredentials()">Next</button>
+        </div>
+    </div>
+    <div id="selection-page">
+        <div class="info-panel">
+            <p class="info-line">Select Contact and Lead fields which are to be displayed in the Freshchat App widget
+            </p>
+        </div>
+        <div id="select-fields">
+            <!-- dynamic select element will be shown -->
+        </div>
+        <button class="btn btn-primary" onclick="SaveFields()">Save Fields</button>
+    </div>
+</body>
+<script>
+    var selected_contact_fields = [];
+    var selected_lead_fields = [];
+    var freshchat_api_token;
+    var zendesk_access_token;
+    var isAuthenticated = false;
+    var isFieldSelected = false;
+
+    function postConfigs() {
+        return {
+            __meta: {
+                secure: ["freshchat_api_token", "zendesk_access_token"]
+            },
+            freshchat_api_token: freshchat_api_token,
+            zendesk_access_token: zendesk_access_token,
+            selected_contact_fields: selected_contact_fields,
+            selected_lead_fields: selected_lead_fields
+        };
+    }
+
+    function getConfigs(inputConfigs) {
+
+        if (inputConfigs.selected_contact_fields) {
+            selected_contact_fields = inputConfigs.selected_contact_fields;
+        }
+
+        if (inputConfigs.selected_lead_fields) {
+            selected_lead_fields = inputConfigs.selected_lead_fields;
+        }
+
+        if (inputConfigs.freshchat_api_token && inputConfigs.zendesk_access_token) {
+            document.getElementById("freshchat_api_token").value = inputConfigs.freshchat_api_token;
+            document.getElementById("zendesk_access_token").value = inputConfigs.zendesk_access_token;
+            ValidateCredentials();
+        }
+    }
+
+    function validate() {
+        return isAuthenticated && isFieldSelected;
+    }
+
+    function ValidateCredentials() {
+        app.initialized().then(function (client) {
+            freshchat_api_token = document.getElementById("freshchat_api_token").value;
+            zendesk_access_token = document.getElementById("zendesk_access_token").value;
+            if (freshchat_api_token && zendesk_access_token) {
+                let methodExecuter = [];
+            methodExecuter.push(validateFreshchatCredential(freshchat_api_token, client));
+            methodExecuter.push(getFields(zendesk_access_token, client, "https://api.getbase.com/v2/contacts"));
+            methodExecuter.push(getFields(zendesk_access_token, client,
+                "https://api.getbase.com/v2/contact/custom_fields"));
+            methodExecuter.push(getFields(zendesk_access_token, client, "https://api.getbase.com/v2/leads"));
+            methodExecuter.push(getFields(zendesk_access_token, client,
+                "https://api.getbase.com/v2/lead/custom_fields"));
+            Promise.all(methodExecuter).then(responses => {
+                let contactFields = JSON.parse(responses[1].response);
+                let customContactFields = JSON.parse(responses[2].response);
+                let leadFields = JSON.parse(responses[3].response);
+                let customleadFields = JSON.parse(responses[4].response);
+
+                createFields(contactFields, customContactFields, "Contact");
+                createFields(leadFields, customleadFields, "Lead");
+                isAuthenticated = true;
+                document.getElementById("auth-page").style.display = "none";
+                document.getElementById("selection-page").style.display = "block";
+            }, error => {
+                console.log("error while validating credential", error);
+                ShowWarning("error", "Please provide valid Freshchat API Token and/or Zendesk Access Token");
+            });
+            } else {
+                ShowWarning("error", "Please provide Freshchat API Token and/or Zendesk Access Token");
+            }
+        }, err => {
+            console.log("error while initializing app", err);
+        });
+    }
+
+    function validateFreshchatCredential(freshchat_api_token, client) {
+        let url = "https://api.freshchat.com/v2/agents";
+        let options = {
+            headers: {
+                Authorization: `Bearer ${freshchat_api_token}`,
+                "Content-Type": "application/json",
+            }
+        }
+        return new Promise((resolve, reject) => {
+            client.request.get(url, options).then(result => {
+                console.log(result);
+                if (result.status === 200) {
+                    resolve("authorization success");
+                } else {
+                    reject("authorization failed");
+                }
+            }, err => {
+                console.log(err);
+                reject("authorization failed");
+            });
+        });
+    }
+
+    function getFields(zendesk_access_token, client, url) {
+        let options = {
+            headers: {
+                Authorization: `Bearer ${zendesk_access_token}`,
+                "Content-Type": "application/json",
+                "User-Agent": "PostmanRuntime/7.26.5",
+                "Accept": "*/*",
+            }
+        };
+        return new Promise((resolve, reject) => {
+            client.request.get(url, options).then(result => {
+                console.log(result);
+                resolve(result);
+            }, err => {
+                console.log(err);
+                reject(err);
+            });
+        });
+    }
+
+    function extractDefaultField(contactFields, allFields) {
+
+        let fields = contactFields.data;
+        for (const field in fields) {
+            if (field == "shipping_address" || field == "address" || field == "billing_address") {
+                for (const key in fields[field]) {
+                    allFields.push(`${field}.${key}`);
+                }
+            } else {
+                allFields.push(field);
+            }
+        }
+    }
+
+    function extractCustomField(customContactFields, allFields) {
+        customContactFields.forEach(customField => {
+            allFields.push(customField.data.name);
+        });
+    }
+
+    function createFields(defaultFields, customFields, fieldFor) {
+        let allFields = [];
+        if (defaultFields.items.length > 0) {
+            extractDefaultField(defaultFields.items[0], allFields);
+        }
+        if (customFields.items.length > 0) {
+            extractCustomField(customFields.items, allFields);
+        }
+        createFieldsInDOM(allFields, fieldFor);
+    }
+
+    function createFieldsInDOM(allFields, fieldFor) {
+        let selected_fields = fieldFor == "Contact" ? selected_contact_fields : selected_lead_fields;
+        let element =
+            `<fw-select id="select-${fieldFor.toLowerCase()}" label="${fieldFor}" placeholder="Select ${fieldFor} Fields to be shown" multiple>`;
+        allFields.forEach(field => {
+            if (selected_fields.includes(field)) {
+                element += `<fw-select-option value="${field}" selected>${field}</fw-select-option>`;
+            } else {
+                element += `<fw-select-option value="${field}">${field}</fw-select-option>`;
+            }
+        });
+        element += `</fw-select>`;
+        $("#select-fields").append(element);
+    }
+
+    function SaveFields() {
+        selected_contact_fields = $("#select-contact").val();
+        selected_lead_fields = $("#select-lead").val();
+        
+        if (selected_contact_fields && selected_contact_fields.length > 0 && selected_lead_fields && selected_lead_fields.length) {
+            ShowWarning("success", "Selected field saved. Click Install to proceed");
+            isFieldSelected = true;
+        } else {
+            ShowWarning("error", "Please select fields to be displayed");
+            isFieldSelected = false;
+        }
+        
+    }
+
+    // show warning in textbox 
+    function ShowWarning(type, message) {
+        if (type == "success") {
+            $(`#alert-panel-success`).text(message).show();
+            $(`#alert-panel-success`).delay(3000).fadeOut("slow");
+        } else if (type == "error") {
+            $(`#alert-panel-error`).text(message).show();
+            $(`#alert-panel-error`).delay(3000).fadeOut("slow");
+        }
+    }
+</script>
+
+</html>
