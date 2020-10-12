@@ -102,9 +102,6 @@ function onAppActivatedCallback() {
               console.log("No email id found!!");
               noEmailAlert();
             }
-            /* getContactLeadId(user.id, (contactId, leadId) => {
-              
-            }); */
           }
         },
         function (error) {
@@ -248,33 +245,6 @@ function getID(user) {
   };
 }
 
-/* function getContactLeadId(id, done) {
-  let url = `https://api.freshchat.com/v2/users/${id}`;
-  let options = {
-    headers: {
-      Authorization: `Bearer <%=iparam.freshchat_api_token %>`,
-      "Content-Type": "application/json",
-    },
-  };
-  client.request.get(url, options).then(
-    (response) => {
-      console.log(response);
-      let contactId = null,
-        leadId = null;
-      let userDetails = JSON.parse(response.response);
-      userDetails.properties.forEach((property) => {
-        if (property.name == "zendesk_contact_id" && property.value != "N/A") contactId = property.value;
-        if (property.name == "zendesk_lead_id" && property.value != "N/A") leadId = property.value;
-      });
-      done(contactId, leadId);
-    },
-    (err) => {
-      console.log(err);
-      done(null, null);
-    }
-  );
-} */
-
 function removeContactLeadID(id) {
   var url = `https://api.freshchat.com/v2/users/${id}`;
   var options = {
@@ -331,6 +301,9 @@ function populateContactDetails(contact, userId) {
   checkUserID(contact, userId, "contact");
   DisplayContactDetails(contact);
   $("#contact-panel").show();
+  let elementHeight = $("#contact-panel").height();
+  let widgetHeight = elementHeight + 40;
+  client.instance.resize({ height: widgetHeight });
 }
 
 function populateLeadDetails(lead, userId) {
@@ -342,6 +315,9 @@ function populateLeadDetails(lead, userId) {
   checkUserID(lead, userId, "lead");
   DisplayLeadDetails(lead);
   $("#lead-panel").show();
+  let elementHeight = $("#lead-panel").height();
+  let widgetHeight = elementHeight + 40;
+  client.instance.resize({ height: widgetHeight });
 }
 
 function populateEmptyDetails() {
@@ -350,6 +326,9 @@ function populateEmptyDetails() {
   $("#contact-details").empty();
   $("#email-not-found").hide();
   $("#contact-lead-un-available").show();
+  let elementHeight = $("#contact-lead-un-available").height();
+  let widgetHeight = elementHeight + 50;
+  client.instance.resize({ height: widgetHeight });
 }
 
 function noEmailAlert() {
@@ -360,6 +339,9 @@ function noEmailAlert() {
   $("#contact-panel").hide();
   $("#contact-lead-un-available").hide();
   $("#email-not-found").show();
+  let elementHeight = $("#email-not-found").height();
+  let widgetHeight = elementHeight + 40;
+  client.instance.resize({ height: widgetHeight });
 }
 
 function populateUserDetails(user) {
@@ -548,6 +530,9 @@ function startFetching() {
   $("#contact-details").empty();
   $("#lead-details").empty();
   $("#fetching").show();
+  let elementHeight = $("#fetching").height();
+  let widgetHeight = elementHeight + 40;
+  client.instance.resize({ height: widgetHeight });
   $("#lead-panel").hide();
   $("#contact-panel").hide();
   $("#email-not-found").hide();
@@ -566,11 +551,3 @@ function CreateContact() {
     data: currentUserDetails,
   });
 }
-/* 
-function CreateLead() {
-  client.interface.trigger("showModal", {
-    title: "Create lead",
-    template: "modal/createLead.html",
-    data: currentUserDetails,
-  });
-} */
