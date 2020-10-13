@@ -2,6 +2,20 @@
 
 This widget dsplays lead and contact details from Zendesk Sell in Freshchat. You can optionally create new leads and contacts from within Freshchat.
 
+## Setup
+
+In ZendeskSell set up twi custom fields:
+
+Contact:
+
+Field Label: Freshchat User ID
+Field Type: Single Line Text
+
+Lead:
+
+Field Label: Freshchat User ID
+Field Type: Single Line Text
+
 ### Folder structure explained
 
     .
