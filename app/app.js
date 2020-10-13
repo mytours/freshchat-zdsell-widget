@@ -302,7 +302,7 @@ function populateContactDetails(contact, userId) {
   DisplayContactDetails(contact);
   $("#contact-panel").show();
   let elementHeight = $("#contact-panel").height();
-  let widgetHeight = elementHeight + 40;
+  let widgetHeight = elementHeight + 50;
   client.instance.resize({ height: widgetHeight });
 }
 
@@ -316,7 +316,7 @@ function populateLeadDetails(lead, userId) {
   DisplayLeadDetails(lead);
   $("#lead-panel").show();
   let elementHeight = $("#lead-panel").height();
-  let widgetHeight = elementHeight + 40;
+  let widgetHeight = elementHeight + 50;
   client.instance.resize({ height: widgetHeight });
 }
 
@@ -327,7 +327,7 @@ function populateEmptyDetails() {
   $("#email-not-found").hide();
   $("#contact-lead-un-available").show();
   let elementHeight = $("#contact-lead-un-available").height();
-  let widgetHeight = elementHeight + 50;
+  let widgetHeight = elementHeight + 60;
   client.instance.resize({ height: widgetHeight });
 }
 
@@ -340,7 +340,7 @@ function noEmailAlert() {
   $("#contact-lead-un-available").hide();
   $("#email-not-found").show();
   let elementHeight = $("#email-not-found").height();
-  let widgetHeight = elementHeight + 40;
+  let widgetHeight = elementHeight + 50;
   client.instance.resize({ height: widgetHeight });
 }
 
